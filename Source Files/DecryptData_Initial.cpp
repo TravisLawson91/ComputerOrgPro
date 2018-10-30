@@ -21,7 +21,7 @@ int decryptData(char *data, int dataLength)
 
 	__asm {
 
-		// I'd like to think Diet Coke for helping me get this done, you are the true champion.
+		// I'd like to think Diet Coke for helping me get this done, you are the true champion!
 
 		lea edx, gptrPasswordHash	 // load addres of gPhasswordHash[0]
 		movzx eax, byte ptr[edx]	 // first byte of gPH[0] stored in eax
