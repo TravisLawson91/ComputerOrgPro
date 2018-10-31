@@ -42,12 +42,12 @@ int decryptData(char *data, int dataLength)
 		
 		xor ecx, ecx		// clearing any contents that may be in ecx
 		
-		DECRYPT_LOOP :		  // start decrypting
-		inc ecx		
+		DECRYPT_LOOP :		  // start decrypting	
 		cmp ecx, dataLength	  // if ecx == dataLength sets ZF=1
 		je END				  // if ZF=1, jump to end oter
 		xor byte ptr[edi], bl // xor first byte of encrypted data
 		inc edi				  // incease edi to get the next byte of data
+		inc ecx
 		jmp DECRYPT_LOOP	  // jump to start of loop
 
 		END :
