@@ -20,6 +20,35 @@ int encryptData(char *data, int dataLength)
 	// Also, you cannot use a lot of global variables - work with registers
 
 	__asm {
+		lea edx, gptrPasswordHash	 // load addres of gPhasswordHash[0]
+		movzx eax, byte ptr[edx]	 // first byte of gPH[0] stored in eax
+		movzx ebx, byte ptr[edx + 1] // gph[1] stored in ebx
+		shl eax, 8					 // multiply by 256
+		add eax, ebx				 // adding gph[1]
+		// code will get the starting-index
+
+		// the starting index stored in eax will be the location in the keyfile
+		xor edx, edx		// clearing edx 
+		xor ebx, ebx		// clearing ebx
+		lea edx, gkey		// copy the address of out group key into edx
+		mov ebx, [edx + eax]	// copy the data of edx+eax; the equivalent of  keyfile[starting index]
+		// mov gdebug1, bl		// debug purposes
+
+
+		mov edi, data		// moving encrpyted file into data
+
+		xor ecx, ecx		// clearing any contents that may be in ecx
+
+		ENCRYPT_LOOP :		  // start decrypting	
+		cmp ecx, dataLength	  // if ecx == dataLength sets ZF=1
+			je END				  // if ZF=1, jump to end oter
+			xor byte ptr[edi], bl // xor first byte of encrypted data
+			inc edi				  // incease edi to get the next byte of data
+			inc ecx
+			jmp ENCRYPT_LOOP	  // jump to start of loop
+
+			END :
+
 
 		
 	}
