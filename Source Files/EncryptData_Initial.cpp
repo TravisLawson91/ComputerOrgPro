@@ -20,58 +20,36 @@ int encryptData(char *data, int dataLength)
 	// Also, you cannot use a lot of global variables - work with registers
 
 	__asm {
-		/*
-		// you will need to reference some of these global variables
-		// (gptrPasswordHash or gPasswordHash), (gptrKey or gkey), gNumRounds
+		lea edx, gptrPasswordHash	 // load addres of gPhasswordHash[0]
+		movzx eax, byte ptr[edx]	 // first byte of gPH[0] stored in eax
+		movzx ebx, byte ptr[edx + 1] // gph[1] stored in ebx
+		shl eax, 8					 // multiply by 256
+		add eax, ebx				 // adding gph[1]
+		// code will get the starting-index
 
-		// simple example that xors 2nd byte of data with 14th byte in the key file
-		lea esi,gkey				// put the ADDRESS of gkey into esi
-		mov esi,gptrKey;			// put the ADDRESS of gkey into esi (since *gptrKey = gkey)
+		// the starting index stored in eax will be the location in the keyfile
+		xor edx, edx		// clearing edx 
+		xor ebx, ebx		// clearing ebx
+		lea edx, gkey		// copy the address of out group key into edx
+		mov ebx, [edx + eax]	// copy the data of edx+eax; the equivalent of  keyfile[starting index]
+		// mov gdebug1, bl		// debug purposes
 
-		lea	esi,gPasswordHash		// put ADDRESS of gPasswordHash into esi
-		mov esi,gptrPasswordHash	// put ADDRESS of gPasswordHash into esi (since unsigned char *gptrPasswordHash = gPasswordHash)
 
-		mov al,byte ptr [esi]				// get first byte of password hash
-		mov al,byte ptr [esi+4]				// get 5th byte of password hash
-		mov ebx,2
-		mov al,byte ptr [esi+ebx]			// get 3rd byte of password hash
-		mov al,byte ptr [esi+ebx*2]			// get 5th byte of password hash
+		mov edi, data		// moving encrpyted file into data
 
-		mov ax,word ptr [esi+ebx*2]			// gets 5th and 6th bytes of password hash ( gPasswordHash[4] and gPasswordHash[5] ) into ax
-		mov eax,dword ptr [esi+ebx*2]		// gets 4 bytes, as in:  unsigned int X = *( (unsigned int*) &gPasswordHash[4] );
+		xor ecx, ecx		// clearing any contents that may be in ecx
 
-		mov al,byte ptr [gkey+ebx]			// get's 3rd byte of gkey[] data
+		ENCRYPT_LOOP :		  // start decrypting	
+		cmp ecx, dataLength	  // if ecx == dataLength sets ZF=1
+			je END				  // if ZF=1, jump to end oter
+			xor byte ptr[edi], bl // xor first byte of encrypted data
+			inc edi				  // incease edi to get the next byte of data
+			inc ecx
+			jmp ENCRYPT_LOOP	  // jump to start of loop
 
-		mov al,byte ptr [gptrKey+ebx]		// THIS IS INCORRECT - will add the address of the gptrKey global variable (NOT the value that gptrKey holds)
+			END :
 
-		mov al,byte ptr [esi+0xd];			// access 14th byte in gkey[]: 0, 1, 2 ... d is the 14th byte
-		mov edi,data				// Put ADDRESS of first data element into edi
-		xor byte ptr [edi+1],al		// Exclusive-or the 2nd byte of data with the 14th element of the keyfile
-									// NOTE: Keyfile[14] = 0x21, that value changes the case of a letter and flips the LSB
-									// Capital "B" = 0x42 becomes lowercase "c" since 0x42 xor 0x21 = 0x63
-		*/
 
-		lea edx, gPasswordHash
-		mov edi, data
-
-		movzx eax, byte ptr[edx] // GET FIRST BYTE
-		shl eax, 8 // MULTI  BY 256
-		inc edx // holds key file starting index
-		xor ecx, ecx
-		jmp ENC_START
-
-		TESTER :
-		inc ecx
-		cmp ecx, dataLength
-		je END
-		ENC_START :
-		xor byte ptr[edi], dl
-		inc edi
-		inc edx
-		cmp ecx, dataLength
-		jne TESTER
-
-		END:
 		
 	}
 
