@@ -35,11 +35,11 @@ int encryptData(char *data, int dataLength)
 		// mov gdebug1, bl		// debug purposes
 
 
-		mov edi, data		// moving encrpyted file into data
+		mov edi, data		// moving unencrypted file into data
 
 		xor ecx, ecx		// clearing any contents that may be in ecx
 
-		ENCRYPT_LOOP :		  // start decrypting	
+		ENCRYPT_LOOP :		  // start encrypting	
 		cmp ecx, dataLength	  // if ecx == dataLength sets ZF=1
 			je END				  // if ZF=1, jump to end oter
 			xor byte ptr[edi], bl // xor first byte of encrypted data
