@@ -15,16 +15,16 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="..\..\2018 08 - CS 3843 - ProjectFiles4Students\CryptoMain_Initial.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\2018 08 - CS 3843 - ProjectFiles4Students\DecryptData_Initial.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\2018 08 - CS 3843 - ProjectFiles4Students\EncryptData_Initial.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\2018 08 - CS 3843 - ProjectFiles4Students\SHA-256.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source Files\DecryptData_Initial.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source Files\EncryptData_Initial.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\Source Files\CryptoMain_Initial.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

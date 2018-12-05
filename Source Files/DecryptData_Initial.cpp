@@ -111,7 +111,7 @@ int decryptData(char *data, int dataLength)
 	//xor eax, eax
 	xor ebx, ebx
 	xor edx, edx
-	xor esi, esi
+	mov esi, gNumRounds
 	lea edx, gPasswordHash
 	mov ah, [edx+esi*4]
 	mov al, [edx+esi*4+1]
@@ -139,7 +139,15 @@ int decryptData(char *data, int dataLength)
 	inc ecx
 	inc edi
 	jmp START_DECRY
-	END:
+		END :
+		xor ecx, ecx // reset ecx back to 0 for next round
+		mov ecx, gNumRounds
+		dec ecx
+		cmp esi, ecx
+		je  FINALLY
+		jmp ROUNDS
+
+	FINALLY:
 	pop eax
 	nop
 	}
