@@ -20,158 +20,153 @@ int decryptData(char *data, int dataLength)
 	// Also, you cannot use a lot of global variables - work with registers
 
 	__asm {
+	// Crypto order BDEAC
+	xor eax, eax			// clear
+	xor ebx, ebx			// ""
+	xor ecx, ecx			// ""
+	xor edx, edx			// ""
+	xor esi, esi
 
-		// I'd like to thank Diet Coke for helping me get this done, you are the true champion!
-		// Crypto order BDEAC
-		
-		mov edi, data
+	mov edi, data			// load base address of a file into edi
+	mov esi, gNumRounds		// load number of rounds into esi, keeps track of how many times we decrypt
+	dec esi					// decrement, because we start at 0 and not 1. Round 1 == iteration 0
 
-		//C. swap nibblets		
-							// Lorin, unsure of how to comment. Not 100% of what's going to. Could you please comment? - Travis 11-10-18
-		// sub edi, dataLength		// reset edi to start of file
-		xor eax, eax			// clear
-		xor edx, edx			// ""
-		xor ecx, ecx			// ""
-		mov ecx, dataLength		// used to keep count of iterations
+	// Crypto order BDEAC 
+	START_DECRY:
+	cmp ecx, dataLength		// ecx used to keep track of how many times we've looped
+	je END					// if ecx == dataLength jump to end
 
-		START_SWAP_NIBBLETS :	// start of loop
-		mov dl, byte ptr[edi]	// copy first byte of file into dl
-		mov al, dl
 
-		ROR al, 4
+	//C. swap nibblets		
+						// Lorin, unsure of how to comment. Not 100% of what's going to. Could you please comment? - Travis 11-10-18
+	mov dl, byte ptr[edi]	// copy first byte of file into dl
+	mov al, dl
 
-		mov dl, al
-		mov ebx, edx
-		mov byte ptr[edi], bl
-		INC EDI
-		dec ecx
-		jne START_SWAP_NIBBLETS
+	ROR al, 4
 
-		// A. swap even and odd 
-							// Chinedu can you make sure the comments are correct on what your algorithm is doing? - Travis 11-10-18
-		sub edi, dataLength		// reset edi to start of file
-		xor eax, eax			// clear 
-		xor ecx, ecx			// ""
-		mov ecx, dataLength		// used to keep count of interations
+	mov dl, al
+	mov ebx, edx
+	mov byte ptr[edi], bl
 
-		START_EO_SWAP :			// start loop
-		mov al, byte ptr[edi]	// copy first byte into al
+	// A. swap even and odd 
+			// Chinedu can you make sure the comments are correct on what your algorithm is doing? - Travis 11-10-18
+	mov al, byte ptr[edi]	// copy first byte into al
 
-		and al, 0xaa			// masking odd bytes in al
-		shr al, 1				// right shift to of set bits
-		mov bl, al				// copy to bl to hold
+	and al, 0xaa			// masking odd bytes in al
+	shr al, 1				// right shift to of set bits
+	mov bl, al				// copy to bl to hold
 
-		xor eax, eax			// clearing
+	xor eax, eax			// clearing
 			
-		mov al, byte ptr[edi]	// re-copy first byte into al
-		and al, 0x55			// masking even bytes
-		shl al, 1				// left shift to offset bits
-
-		or al, bl				// making the final swap
-		mov byte ptr[edi], al	// overwrite byte in file with freshly swapped byte
-		inc edi					// increase to next byte
-		xor eax, eax			// clear
-		xor ebx, ebx			// ""
-		dec ecx
-		jne START_EO_SWAP		// end loop
-
-		//E. reverse bit order
-		sub edi, dataLength		// reset edi back to start of data stream
-		xor eax, eax			// clearing regisiter
-		xor ecx, ecx			// ""
-		xor ebx, ebx			// ""
-		mov al, byte ptr[edi]  // copy the first byte of  data we want to reverse
-		mov ecx, 8				// set our count to 8, traversing through 8 bits
-		mov ebx, 0				// regist will hold the carry flag that is rotated
-
-		xor edx, edx							// clear register
-		mov edx, dataLength						// used for counting interates since ecx is being used
-		START_REVERSE_BIT_ORDER_OUTER :			// start outer loop
-			START_REVERSE_BIT_ORDER_INNER:		// start innter loop
-			sal al, 1							// left shift by 1 which will set CF = 1
-			rcr bl, 1							// right rotate through CF copying 1 into bl
-			cmp ecx, 0							// is ecx == 0? nah brah, it's not
-			dec ecx								// decrease that boi
-			jne START_REVERSE_BIT_ORDER_INNER
-		mov byte ptr[edi], bl					// overwrite byte of data in file with the reversed version
-		xor eax, eax
-		xor ecx, ecx
-		xor ebx, ebx
-		inc edi									// increse edi to get next byte of data
-		mov al, byte ptr[edi]					// copy next byte of file into al
-		mov ecx, 8								// set our count to 8, traversing through 8 bits					
-		mov ebx, 0								// regist will hold the carry flag that is rotated
-		dec edx
-		jne START_REVERSE_BIT_ORDER_OUTER		// end outer
-
-		//D. code swapper table
-		sub edi, dataLength		// reset edi back to start of data stream
-		lea edx, gDecodeTable	// load address of first value in encode table
-		xor ebx, ebx			// clearing 
-		xor ecx, ecx			// ""
-		xor eax, eax			// ""
-
-		START_TABLE_SWAP :		//	start loop
-		cmp ecx, dataLength
-		je END_TABLE_SWAP
-		mov al, byte ptr[edi]
-		mov ebx, [edx + eax]		// goes to position in gEncodeTable and copies value into ebx
-		mov byte ptr[edi], bl  // overwrite byte in file with value from encode table
-		inc edi
-		inc ecx
-		jmp START_TABLE_SWAP
-		END_TABLE_SWAP :			// end loop
-
-		xor ecx, ecx		// clear count
-		xor ebx, ebx		// clear register
-		sub edi, dataLength	// reset to start of data stream
-		mov bl, 0x3C		// copy value we want to use to invert bits
-
-		INVERT_MIDDLE_FOUR :			// Start of loop
-		cmp ecx, dataLength
-		je END_INVERT_MIDDLE_FOUR
-		xor byte ptr[edi], bl		// inverting middle four bits with 0x3C  ==  0011 1100
-		inc edi
-		inc ecx
-		jmp INVERT_MIDDLE_FOUR
-		END_INVERT_MIDDLE_FOUR :		// end loop
-
-		// CLEAR ALL THE THINGS!!!!
-		xor edx, edx
-		xor eax, eax
-		xor ecx, ecx
-		xor ebx, ebx
-		xor edx, edx
-
-		lea edx, gptrPasswordHash	 // load addres of gPhasswordHash[0]
-		movzx eax, byte ptr[edx]	 // first byte of gPH[0] stored in eax
-		movzx ebx, byte ptr[edx + 1] // gph[1] stored in ebx
-		shl eax, 8					 // multiply by 256
-		add eax, ebx				 // adding gph[1]
-		// code will get the starting-index
-
-		// the starting index stored in eax will be the location in the keyfile
-		xor edx, edx		// clearing edx 
-		xor ebx, ebx		// clearing ebx
-		lea edx, gkey		// copy the address of out group key into edx
-		mov ebx, [edx+eax]	// copy the data of edx+eax; the equivalent of  keyfile[starting index]
-		// mov gdebug1, bl		// debug purposes
+	mov al, byte ptr[edi]	// re-copy first byte into al
+	and al, 0x55			// masking even bytes
+	shl al, 1				// left shift to offset bits
 		
-		xor ecx, ecx		// clearing any contents that may be in ecx
-		sub edi, dataLength
-		DECRYPT_LOOP :		  // start decrypting	
-		cmp ecx, dataLength	  // if ecx == dataLength sets ZF=1
-		je END				  // if ZF=1, jump to end oter
-		xor byte ptr[edi], bl // xor first byte of encrypted data
-		inc edi				  // incease edi to get the next byte of data
-		inc ecx
-		jmp DECRYPT_LOOP	  // jump to start of loop
-
-		END :
-
-		nop
+	or al, bl				// making the final swap
+	mov byte ptr[edi], al	// overwrite byte in file with freshly swapped byte
 
 
+	//E. reverse bit order
+	xor eax, eax							// clearing 
+	xor ebx, ebx							// ""
+	xor edx, edx							// ""
+	mov al, byte ptr[edi]					// copy the first byte of  data we want to reverse
+	mov edx, 8								// set our count to 8, traversing through 8 bits
+	mov ebx, 0								// regist will hold the carry flag that is rotated
+
+	START_REVERSE_BIT_ORDER:				// start reverse bit loop
+	sal al, 1								// left shift by 1 which will set CF = 1
+	rcr bl, 1								// right rotate through CF copying 1 into bl
+	cmp edx, 0								// is ecx == 0? nah brah, it's not
+	dec edx									// decrease that boi
+	jne START_REVERSE_BIT_ORDER
+	mov byte ptr[edi], bl					// overwrite byte of data in file with the reversed version
+	
+	//D. code swapper table
+	xor edx, edx				// clearing
+	xor ebx, ebx				// "" 
+	xor eax, eax				// ""
+	lea edx, gDecodeTable		// load address of first value in encode table
+	
+	mov al, byte ptr[edi]
+	mov ebx, [edx + eax]		// goes to position in gEncodeTable and copies value into ebx
+	mov byte ptr[edi], bl		// overwrite byte in file with value from encode table
+
+	xor ebx, ebx				// clear register
+
+	// B. invert middle four
+	mov bl, 0x3C				// copy value we want to use to invert bits
+	xor byte ptr[edi], bl		// inverting middle four bits with 0x3C  ==  0011 1100
+
+
+	// XOR with key
+	//	ecx is used
+	//	edi is used
+	//	mov esi, gNumRounds
+	xor ebx, ebx
+	xor edx, edx
+	xor eax, eax
+		
+	jmp TOPPER				// Jump to start of the XOR loop, we want to skip the ROUNDS tag
+							// because this is our first iteration.
+	ROUNDS :		
+	xor ecx, ecx			// Clear
+	xor edi, edi			// Clear
+	pop eax					// pop the saved index value to reset stack for next round
+	mov edi, data			// load data into edi for next round of decryption
+	dec esi					// decrement round number
+	jmp START_DECRY			// make jump to tag to start the next round of decryption
+
+	TOPPER :				// top of XOR loop
+	
+	cmp ecx, 0				// if first iteration, take the jump
+	je NO_POP				// if ecx is zero, we do not want to pop into eax. This will mess of the stack
+	pop eax					// restore saved value from stack
+	jmp POPPED				// forced jump becuase we had to pop value from stack
+	NO_POP :				// jump made if on first iteration, we do NOT want to pop from stack
+
+	// starting index held by eax, esi will handle rounds
+	lea edx, gPasswordHash		// getting base address of pwHash[]
+	mov ah, [edx + esi * 4]		// getting the first by of hash pwHash[0]
+	mov al, [edx + esi * 4 + 1]	// getting second byte of hash pyHash[1]
+	POPPED:						// jump made because we do not want to overwrite the value popped in eax
+								// by executing the above code								
+
+	// hop count held by ebx, esi will handle rounds
+	xor edx, edx				// clear register; probably not needed
+	lea edx, gPasswordHash		// getting address of pwHash; probably redundant
+	mov bh, [edx + esi * 4 + 2]	// getting thrid byte in hash, pwHash[2]
+	mov bl, [edx + esi * 4 + 3] // getting fourth byt ein has, pwHash[3]
+	//getting the values in the pwHash will change as rounds increase, esi manages round numbers
+
+	lea edx, gkey				// get base address of gKey[]
+	mov dh, byte ptr[edx + eax]	// get byte at base address + value in eax
+	xor byte ptr[edi], dh		// flip bits of the first byte in our file
+
+	add eax, ebx			// adding hop_count(ebx) to starting index(eax)
+	cmp eax, 65537			// check if value in eax is less than 65537
+	jl INDEX_NOT_GREATER	// make jump if less than
+	sub eax, 65537			// if value in eax is greater, subtract 65537 so we don't go beyond stack
+	INDEX_NOT_GREATER:
+	push eax				// SAVE NEW INDEX TO STACK FOR LATER USE
+
+	inc ecx					// increase our counter to compare with dataLength, if ecx == dataLength jump to end
+	inc edi
+	jmp START_DECRY
+
+
+
+	END:					// handle rounds, could be named more appropriately 
+	xor ecx, ecx			// reset ecx back to 0 for next round
+	// mov ecx, gNumRounds		// store total number of rounds	
+	// dec ecx					// decrement ecx because we start at 0 and not 1. ie iteration 0 == round 1
+	cmp esi, 0				// if rounds == 0 we take jump to FINALLY
+	je  FINALLY				// esi == 0 means to more rounds to make, to exit program
+	jmp ROUNDS				// esi != 0 means we have more rounds to make.
+	
+	FINALLY:				// ending program
+	pop eax					// pop save value from stack. Used to reset stack to normal
+	nop
 	}
 	
 	return resulti;
