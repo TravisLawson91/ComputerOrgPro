@@ -17,7 +17,7 @@ int encryptData(char *data, int dataLength)
 	// You can not declare any local variables in C, but should use resulti to indicate any errors
 	// Set up the stack frame and assign variables in assembly if you need to do so
 	// access the parameters BEFORE setting up your own stack frame
-	// Also, you cannot use a lot of global variables - work with registers
+	// Also, you cannot use a lot of global variables - work with registers 
 
 	__asm {
 		// clearing just because
